@@ -1,0 +1,173 @@
+<html>
+	<head>
+		<title>Time Tracker</title>
+		<hta:application 
+			 ID="objkeepalive"
+			 APPLICATIONNAME="Track My Time"
+			 BORDER="dialog"
+			 SCROLL="no"
+			 SINGLEINSTANCE="yes"
+			 CAPTION="yes"
+			 CONTEXTMENU="no"
+			 MAXIMIZEBUTTON="no"
+			 MINIMIZEBUTTON="no"
+			 SELECTION="no"
+			 SHOWINTASKBAR="yes"
+			 SYSMENU="no"
+		>
+		<script language="vbscript">
+			window.moveto 65, 0
+		</script>
+	</head>
+	
+	<script language='javascript'>
+	
+		var interval;		
+		
+		function TestJS() {
+			KeepAlive(document.getElementById("idletime").innerHTML + "{ENTER}");
+		}
+		
+		function StartStopFunction(){
+			if (document.getElementById("start_stop").value == "Stop") {
+				clearInterval(interval);
+				document.getElementById("start_stop").innerHTML = "Start";
+			}
+			else { // if (document.getElementById("start_stop").value == "Start") {
+				window.location.reload(false);
+			}			
+		}
+	
+		function startTimer() {
+			var timer = duration = 60, hours, minutes, seconds;
+			var t = 0;
+			
+			function formatTime(time) {
+				hours   = parseInt(time / 3600, 10);
+				minutes = parseInt(time / 60 % 60, 10);
+				seconds = parseInt(time % 60, 10);
+				
+				hours = hours < 10 ? "0" + hours : hours;
+				minutes = minutes < 10 ? "0" + minutes : minutes;
+				seconds = seconds < 10 ? "0" + seconds : seconds;
+
+				return hours + ":" + minutes + ":" + seconds;
+			}
+
+			function resetTimer() {
+				t = 0
+				timer = duration
+			}
+			
+			interval=setInterval(function () {
+
+				document.getElementById("countdown").innerHTML = formatTime(timer);
+				document.getElementById("idletime").innerHTML  = formatTime(parseInt(t));
+				document.getElementById("CurrentBrightness").innerHTML = readCurrentBrightness();
+
+				++t;				
+
+				if (--timer < 0) {
+					document.getElementById("CurrentBrightness").innerHTML = readCurrentBrightness();
+					KeepAlive(document.getElementById("idletime").innerHTML + "{ENTER}");
+					timer=duration
+				}
+				
+			}, 1000);
+			
+		}
+		
+	</script>
+		
+	<script language="vbscript">
+	
+		CurrentBrightness = readCurrentBrightness
+		
+		Sub TestVB
+			Call EnumNameSpaces("root\WMI")
+		End Sub
+		
+		Sub Hook
+			MsgBox "Hooked!"
+		End Sub		
+		
+		Sub RunProgram
+			Set objShell = CreateObject("Wscript.Shell")
+			objShell.Run "notepad.exe"
+		End Sub
+		
+		Sub EnumNameSpaces(strNameSpace)
+			strComputer = "."
+			msgbox strNameSpace
+			Set objWMIService=GetObject ("winmgmts:{impersonationLevel=impersonate}\\" & _ 
+					strComputer & "\" & strNameSpace)
+
+			Set colNameSpaces = objWMIService.InstancesOf("__NAMESPACE")
+
+			For Each objNameSpace in colNameSpaces
+				Call EnumNameSpaces(strNameSpace & "\" & objNameSpace.Name)
+			Next
+		End Sub
+		
+		Function readCurrentBrightness
+			On Error Resume Next
+			Set objWMIService = GetObject("winmgmts:\\.\root\WMI")
+			Set colItems = objWMIService.ExecQuery("Select * From WmiMonitorBrightness")
+			
+			readCurrentBrightness = 100
+			
+			For Each objItem in colItems
+				readCurrentBrightness = objItem.CurrentBrightness
+			Next
+		End Function
+		
+		Sub sleep (Timesec)
+			Set objshell = CreateObject("WScript.Shell")
+			objshell.Run "Timeout /T " & Timesec & " /nobreak" ,0 ,true
+			Set objshell = Nothing
+		End Sub		
+		
+		Sub KeepAlive(key)
+			
+			If CurrentBrightness <> readCurrentBrightness then
+				strComputer = "."
+
+				Set objshell = CreateObject("WScript.Shell") 
+				Set objWMIService = GetObject("winmgmts:\\" & strComputer & "\root\cimv2")
+				Set colProcesses = objWMIService.ExecQuery ("select * from Win32_Process Where Name like '%notepad.exe%'")
+
+				For Each objProcess in colProcesses
+					If objProcess.GetOwner ( User, Domain ) = 0 Then
+						objshell.AppActivate(objProcess.ProcessID)
+						sleep(1)
+						objshell.sendkeys(key)
+					End If
+				Next		
+			End If
+		End Sub
+
+	</script>
+		
+	<body>		
+
+		<div style="position:relative; margin:0 0 0 0; padding: 0; left:30%; top:0%;">
+			<p id="idletime">00:00:00</p>
+			<p id="countdown">00:00:00</p>
+			<p id="CurrentBrightness"></p>
+			<button name="start_stop" id="start_stop" onclick="StartStopFunction()">Stop</button>			
+			<!-- 
+			<button name="testjs" id="testjs" onclick="TestJS()">Test JS</button>
+			<button name="testvb" id="testvb" onclick="TestVB">Test VB</button>
+			-->
+		</div>
+		
+		<script language="JavaScript">
+			window.resizeTo(200,200);
+			RunProgram();
+			document.getElementById("CurrentBrightness").innerHTML = readCurrentBrightness();
+			startTimer();
+		</script>
+		
+	</body>
+
+</html>
